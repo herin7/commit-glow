@@ -2,7 +2,7 @@
 import datetime, json, os, subprocess, sys, urllib.request
 
 TODAY = 'query($f:DateTime!,$t:DateTime!){viewer{contributionsCollection(from:$f,to:$t){totalCommitContributions restrictedContributionsCount}}}'
-CALENDAR = '{viewer{contributionsCollection{contributionCalendar{weeks{contributionDays{weekday contributionCount}}}}}}'
+CALENDAR = '{viewer{contributionsCollection{contributionCalendar{weeks{contributionDays{date weekday contributionCount}}}}}}'
 # Saturated take on GitHub's graph shades (theirs look washed-out on LEDs): min count -> color, darker = more.
 GREENS = [(1, 0x78ff00), (3, 0x00ff00), (6, 0x00c020), (10, 0x008010)]
 MISSED = (255, 0, 0)  # a day with zero contributions
@@ -40,6 +40,17 @@ def grid(weeks, today, now, rows, cols):
         for r, n in enumerate(sums):
             cells[r, c] = green(n) if n else MISSED
     return cells
+
+
+def days(weeks, today, now):
+    """Chronological [(date, count)], oldest first, ending today. `today` overrides the calendar's today."""
+    out = [(d['date'], d['contributionCount']) for w in weeks for d in w]
+    date = now.date().isoformat()
+    if out and out[-1][0] == date:
+        out[-1] = (date, today)
+    else:
+        out.append((date, today))
+    return out
 
 
 def _graphql(query, variables):

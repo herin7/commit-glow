@@ -1,40 +1,57 @@
 # commit-glow
 
-Your GitHub contribution graph, on your keyboard.
+Your GitHub contribution history, lit up on your keyboard. Every key is a day: green if you shipped, red if you didn't. Today's key stays red until your first commit. Mice and other single-color devices show today only.
 
-Each key column is a week, each row a weekday. Green keys are days you shipped (darker = more), red keys are days you didn't. Today's key stays red until your first commit. Mice and other single-color devices show today only: red that brightens through the day, green once you've committed.
+**Use it as a Claude Code skill, not a template.** Every keyboard is different: the brand, the layout, how many LEDs it has, the order the firmware numbers them in, and whether a vendor app is fighting over the lights. Copying someone's config won't light up your board correctly. The skill makes your agent work it out for your hardware:
+
+- detects what you have plugged in
+- uses a built-in driver or OpenRGB when one fits
+- when nothing fits, reverse-engineers the lighting protocol from your vendor's app, maps which LED is which key, and writes a driver for your device
+
+The first native driver, for the EvoFox Ronin 75%, was built exactly this way.
 
 ```
-        Esc F1  F2  F3  ...                newest week ->  PrtSc
-Mon     ■   ■   □   ■   ...                                  ■
-Tue     ■   ■   ■   □   ...                                  ■
-Wed     □   ■   ■   ■   ...                        today ->  □  (red until you commit)
+/plugin marketplace add herin7/commit-glow
+/plugin install commit-glow@commit-glow
+```
+
+Then tell Claude: **"put my GitHub streak on my keyboard"**.
+
+## What it looks like
+
+On a one-key-per-day keyboard you read it like text: left to right, row by row. The first key is the oldest day and the last key is today.
+
+```
+Esc F1  F2  F3  ...  F12 Del        <- oldest days
+`   1   2   3   ...  =   Bksp
 ...
-■ green = contributions   □ red = zero
+Ctrl Win Alt  Space  Alt Fn  ← ↓ →  <- → is today
 ```
 
-## Install
+Keyboards that OpenRGB knows the layout of get a weekly grid instead: each column is a week, each row a weekday.
+
+## Without Claude Code
 
 ```sh
 pip install git+https://github.com/herin7/commit-glow
 commit-glow devices     # what it found
 commit-glow demo        # today shown as a missed day for 15 s
-commit-glow autostart   # run at login (Windows; prints the command elsewhere)
+commit-glow map         # which key is which date
+commit-glow autostart   # run at login
 ```
 
 GitHub access comes from the `gh` CLI (`gh auth login`), or set `GITHUB_TOKEN` to a token with `read:user`. Private-repo contributions count if your profile shows them.
 
-## Supported hardware
+## Hardware
 
-| Device | How |
+| Device | Support |
 |---|---|
-| EvoFox Ronin TKL (wired) | native driver, no extra app |
-| Logitech G102 / G203 LIGHTSYNC | native driver, works even without G HUB |
-| Anything [OpenRGB supports](https://openrgb.org/devices.html) (Razer, Corsair, SteelSeries, ASUS, HyperX, Redragon, ...) | start OpenRGB, enable **SDK Server**, leave it running |
+| EvoFox Ronin 75% (wired) | native driver, one key per day |
+| Logitech G102 / G203 LIGHTSYNC | native driver, today's color |
+| Anything [OpenRGB supports](https://openrgb.org/devices.html) | run OpenRGB with **SDK Server** on |
+| Anything else with per-key RGB and a Windows vendor app | ask the skill to build a driver ([how](PROTOCOLS.md#adding-a-new-device)) |
 
-Keyboards get the per-key heatmap when the driver knows their layout (OpenRGB "matrix" zones). Other devices get today's single color.
-
-Close the vendor app (EvoFox, G HUB lighting, Synapse, iCUE...) if it fights over the lights.
+Close the vendor app (EvoFox, G HUB lighting, Synapse, iCUE...) while commit-glow runs, or it will overwrite the colors.
 
 ## Commands
 
@@ -43,29 +60,22 @@ Close the vendor app (EvoFox, G HUB lighting, Synapse, iCUE...) if it fights ove
 | `commit-glow run` | the loop: check GitHub every 5 min, repaint on change |
 | `commit-glow demo` | preview a zero-commit day |
 | `commit-glow devices` | list detected devices |
+| `commit-glow map` | which key shows which date |
+| `commit-glow probe` | every HID device and interface as JSON (start here for new hardware) |
 | `commit-glow restore` | put native devices back how they were before the first run |
-| `commit-glow autostart [--remove]` | start `run` at login |
+| `commit-glow autostart [--remove]` | start `run` at login: Windows Startup shortcut, macOS LaunchAgent, Linux systemd user service |
+
+Works on Windows, macOS and Linux. On Linux, give your user access to the device's hidraw node with a udev rule (the skill does this for you).
 
 ## Going back to normal
 
-1. `commit-glow autostart --remove`, then stop the running `pythonw`/`python -m commit_glow run`.
+1. `commit-glow autostart --remove`, then stop the running `python -m commit_glow run`.
 2. `commit-glow restore`. EvoFox: the settings saved on first run (`%APPDATA%\commit-glow\` or `~/.config/commit-glow/`) are written back. G102: unplug and replug. OpenRGB devices: pick a profile in OpenRGB.
-3. Or just open the vendor app and pick any mode.
+3. Or open the vendor app and pick any mode.
 
-## Claude Code
+## Contributing a driver
 
-This repo is a Claude Code plugin with a setup skill:
-
-```
-/plugin marketplace add herin7/commit-glow
-/plugin install commit-glow@commit-glow
-```
-
-Then ask "put my GitHub streak on my keyboard". The skill installs, detects, demos and sets up autostart.
-
-## Adding a keyboard
-
-If OpenRGB supports it, you're done. If not, [PROTOCOLS.md](PROTOCOLS.md) shows how the EvoFox driver was built: trace the vendor app's HID writes, find the per-key color command and the LED index layout, then add a class next to `EVision` in `commit_glow/backends.py`. PRs welcome.
+If the skill built a driver for your device, send it back as a PR (a class in `commit_glow/backends.py` plus its notes in `PROTOCOLS.md`), so the next person with that keyboard gets it on the first try.
 
 ## Tests
 

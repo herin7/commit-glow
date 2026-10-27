@@ -6,9 +6,15 @@ STATE = pathlib.Path(os.environ.get('APPDATA') or pathlib.Path.home() / '.config
 
 
 class EVision:
-    """EVision-chip keyboards with the EvoFox-style firmware (protocol in PROTOCOLS.md). Per-key, via Custom mode."""
-    KNOWN = {(0x320F, 0x5055): 'EvoFox Ronin TKL'}
-    rows, cols, stride = 6, 17, 21  # LED index = row * 21 + column
+    """EVision-chip keyboards with the EvoFox-style firmware (protocol in PROTOCOLS.md). Per-key, via Custom mode.
+    One key per day in reading order: Esc is the oldest day, the right arrow is today."""
+    KNOWN = {(0x320F, 0x5055): 'EvoFox Ronin 75%'}
+    # LED indices in reading order (15 slots per row), mapped with the EvoFox app's per-key painter.
+    keys = [*range(0, 14), *range(15, 29), *range(30, 45), *range(45, 57), 58, 59, *range(60, 71), 72, 73,
+            75, 76, 77, 81, 85, 86, 87, 88, 89]
+    labels = ('Esc F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12 Del ` 1 2 3 4 5 6 7 8 9 0 - = Bksp '
+              'Tab Q W E R T Y U I O P [ ] \\ PgUp Caps A S D F G H J K L ; \' Enter PgDn '
+              'LShift Z X C V B N M , . / RShift Up LCtrl Win LAlt Space RAlt Fn Left Down Right').split()
 
     def __init__(self, vid, pid, path):
         import hid
@@ -45,11 +51,11 @@ class EVision:
         for o in range(0, len(buf), 56):
             self.query(0x0B, o, bytes(buf[o:o + 56]))
 
-    def show_grid(self, cells):
+    def show_days(self, colors):
+        """colors: oldest first; the last one lands on the last key (today)."""
         buf = bytearray(384)
-        for (r, c), rgb in cells.items():
-            i = 3 * (r * self.stride + c)
-            buf[i:i + 3] = bytes(rgb)
+        for led, rgb in zip(self.keys[-len(colors):], colors[-len(self.keys):]):
+            buf[3 * led:3 * led + 3] = bytes(rgb)
         if buf != self.last:  # colors live in flash: write only on change
             self.write_colors(buf)
             self.last = buf

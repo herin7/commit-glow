@@ -2,7 +2,7 @@
 
 Notes for the native drivers, and how to find a new one.
 
-## EvoFox Ronin TKL (EVision chip, USB `320F:5055`)
+## EvoFox Ronin 75% (EVision chip, USB `320F:5055`, reports itself as "Ronin TKL-1")
 
 Found by attaching a debugger to the EvoFox app and logging its `WriteFile` calls while changing settings. OpenRGB's "EVision V2" driver is close, but this firmware differs in ways that matter.
 
@@ -23,7 +23,16 @@ Found by attaching a debugger to the EvoFox app and logging its `WriteFile` call
 - **Modes:** 4 = Spectrum, 6 = Normal (static), **19 = Custom**, **20 = Off**. Writing OpenRGB's "custom" value (`0x14`) turns the lights off.
 - **Brightness:** 0-4.
 - **Per-key colors:** cmd `0B`, 384 bytes of RGB in 7 × 56-byte chunks. Only shown in Custom mode.
-- **LED index** = `row * 21 + column` (Esc = 0, F1 = 1, Tab = 42, LShift = 84).
+- **LED index** = `row * 15 + column`, following the physical 75% rows. Mapped by recording the app's per-key painter while keys were painted in a known order. The app's own `Keyboard.json` and `Skin/Kb/light` images are a generic full-size template (21 slots per row) and are wrong for this board.
+
+  ```
+  row 0:  Esc F1..F12 Del                          0-13   (14 = knob, no LED)
+  row 1:  ` 1..0 - = Bksp                          15-28
+  row 2:  Tab Q..] \ PgUp                          30-44
+  row 3:  Caps A..' Enter PgDn                     45-56, 58, 59
+  row 4:  LShift Z../ RShift Up                    60-70, 72, 73
+  row 5:  LCtrl Win LAlt Space RAlt Fn Left Down Right   75 76 77 81 85 86 87 88 89
+  ```
 - **Flash:** custom colors are stored in flash, so the driver rewrites them only when they change.
 
 ## Logitech G102 / G203 LIGHTSYNC (USB `046D:C092`)

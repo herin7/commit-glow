@@ -1,0 +1,11 @@
+{
+  "name": "commit-glow",
+  "owner": { "name": "herin7" },
+  "plugins": [
+    {
+      "name": "commit-glow",
+      "source": "./",
+      "description": "Show your GitHub contribution graph on your keyboard and mouse RGB"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+[project]
+name = "commit-glow"
+version = "0.1.0"
+description = "Your GitHub contribution graph on your keyboard and mouse RGB"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+dependencies = ["hidapi>=0.14", "openrgb-python>=0.3"]
+
+[project.scripts]
+commit-glow = "commit_glow.cli:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["commit_glow"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
